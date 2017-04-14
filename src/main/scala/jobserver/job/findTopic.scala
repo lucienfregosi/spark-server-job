@@ -5,6 +5,10 @@ import org.apache.spark._
 import org.apache.spark.SparkContext._
 import org.scalactic._
 import scala.util.Try
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.types.DataTypes
+import org.apache.spark.sql.functions.udf
 
 import spark.jobserver.api.{SparkJob => NewSparkJob, _}
 import spark.jobserver.{SparkJob, SparkJobInvalid, SparkJobValid, SparkJobValidation}
@@ -32,11 +36,13 @@ object FindTopic extends NewSparkJob {
   type JobData = Seq[String]
   type JobOutput = collection.Map[String, Double]
 
-  case class MC(article : Seq[String])
+  //val transformToUdf = udf((cat: Seq[String]) => cat(0))
+
+  //case class MC(article : Seq[String])
   def getVectorForText(occurence: String, model: org.apache.spark.ml.feature.Word2VecModel, sqlContext: org.apache.spark.sql.SQLContext) : DataFrame = {
     import sqlContext.implicits._
-    val c = MC(occurence.split("[, ]").toSeq)
-    val d1 = Seq(c).toDF
+    val c = occurence.split("[, ]").toSeq
+    val d1 = Seq(c).toDF.withColumnRenamed("value","article")
     val v1 = model.transform(d1)
     v1
   }
@@ -57,13 +63,13 @@ object FindTopic extends NewSparkJob {
     import sqlContext.implicits._
 
     val model = Word2VecModel.load("/word2vecModel")
-    val df2: DataFrame = "politique,economie,sport,cinema,art,education".split(",").map {
-      t => MC(Seq(t))
-    }.toSeq.toDF
+    val df2 = "politique,economie,sport,cinema,art,education".split(",").map {
+      t => Seq(t)
+    }.toSeq.toDF.withColumnRenamed("value","article")
 
-    val transformToUdf = udf((cat: Seq[String]) => cat(0))
 
-    val vc1 = model.transform(df2).withColumn("article",transformToUdf($"article"))
+
+    val vc1 = model.transform(df2)
 
 
 
@@ -72,11 +78,9 @@ object FindTopic extends NewSparkJob {
 
     var FinalMap : Map[String,Double] = Map()
 
-    val result = vc1.map( v => {
-      val sqdist = Vectors.sqdist(v.get(1).asInstanceOf[Vector],dd)
-      (v.get(0).toString -> sqdist)
-    })
-    result.collect.toMap
+
+    val result = vc1.collect.map( v => v.get(0).toString -> Vectors.sqdist(v.get(1).asInstanceOf[Vector],dd))
+    result.toMap
   }
 
 
