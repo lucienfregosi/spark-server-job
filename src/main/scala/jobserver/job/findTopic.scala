@@ -17,6 +17,9 @@ import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import org.apache.spark.ml.feature.ElementwiseProduct
 import org.apache.spark.sql.functions.udf
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 
 // On recoit en entrée le texte d'un article
 // En sortie on veut renvoyer les différentes indices de corrélation
@@ -41,6 +44,12 @@ object FindTopic extends NewSparkJob {
 
 
   def runJob(sc: SparkContext, runtime: JobEnvironment, data: JobData): JobOutput = {
+
+    // Déclaration du Logger
+    val logger = LoggerFactory.getLogger("runJob")
+    logger.info("Teeeeeeeeeeeeeeeeeeeest")
+
+
     // Get des données d'entrées, On créé une string avec tous les mots
     val InputDataString  = sc.parallelize(data).reduce((x,y) => (x + " " + y))
 

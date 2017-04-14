@@ -37,6 +37,8 @@ lazy val root = (project in file("."))
     libraryDependencies ++= sparkDeps ++ typeSafeConfigDeps ++ sparkExtraDeps ++ coreTestDeps
       ++ jobserverDeps,
     libraryDependencies +="org.apache.spark" %% "spark-mllib" % sparkVersion,
+    libraryDependencies +="org.slf4j" % "slf4j-api" % "1.7.5",
+    libraryDependencies +="org.slf4j" % "slf4j-simple" % "1.7.5",
     test in assembly := {},
     fork in Test := true
 )
