@@ -79,7 +79,7 @@ object FindTopic extends NewSparkJob {
     var FinalMap : Map[String,Double] = Map()
 
 
-    val result = vc1.collect.map( v => v.get(0).toString -> Vectors.sqdist(v.get(1).asInstanceOf[Vector],dd))
+    val result = vc1.collect.map( v => v.get(0).toString.replace("WrappedArray(","").replace(")","") -> Vectors.sqdist(v.get(1).asInstanceOf[Vector],dd))
     result.toMap
   }
 
