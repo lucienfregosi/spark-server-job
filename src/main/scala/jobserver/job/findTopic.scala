@@ -72,15 +72,26 @@ object FindTopic extends NewSparkJob with NamedObjectSupport {
     import sqlContext.implicits._
 
 
-    val df2 = "politique,economie,sport,cinema,art,education".split(",").map {
+    /*val df2 = "politique,economie,sport,cinema,art,education".split(",").map {
       t => Seq(t)
-    }.toSeq.toDF.withColumnRenamed("value","article")
-
-    //val NamedDataFrame = namedObjects.getOrElseCreate(NamedDataFrame("df2",false, StorageLevel.NONE))
-    this.namedObjects.update("df2", NamedDataFrame(df2, false, StorageLevel.NONE))
+    }.toSeq.toDF.withColumnRenamed("value","article")*/
 
 
-    val vc1 = model.transform(df2)
+    runtime.namedObjects.getOrElseCreate("df2", {
+      NamedDataFrame("politique,economie,sport,cinema,art,education".split(",").map {
+        t => Seq(t)
+      }.toSeq.toDF.withColumnRenamed("value","article"), true, StorageLevel.MEMORY_ONLY)
+    })
+
+
+    val dfNamed = runtime.namedObjects.get[NamedDataFrame]("df2").get.df
+
+
+    //runtime.namedObjects.update("df2", NamedDataFrame(df2, false, StorageLevel.NONE))
+    //val NamedDataFrame = runtime.namedObjects.getOrElseCreate("df2", {NamedDataFrame(df2,false, StorageLevel.NONE) })
+
+
+    val vc1 = model.transform(dfNamed)
 
 
 
