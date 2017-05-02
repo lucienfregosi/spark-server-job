@@ -10,8 +10,10 @@ import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.sql.functions.udf
 
-import spark.jobserver.api.{SparkJob => NewSparkJob, _}
-import spark.jobserver.{SparkJob, SparkJobInvalid, SparkJobValid, SparkJobValidation}
+import spark.jobserver.api.{SparkJob => NewSparkJob}
+import spark.jobserver.api._
+import spark.jobserver.{SparkJob, SparkJobInvalid, SparkJobValid, SparkJobValidation,NamedObjectSupport}
+import spark.jobserver._
 
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.linalg.Vectors
@@ -20,6 +22,7 @@ import org.apache.spark.ml.feature.Word2VecModel
 import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import org.apache.spark.ml.feature.ElementwiseProduct
 import org.apache.spark.sql.functions.udf
+import org.apache.spark.storage.StorageLevel
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -30,13 +33,20 @@ import org.slf4j.LoggerFactory
 // entre chaque topic passé dans le dur et l'article
 // String -> Double
 
-object FindTopic extends NewSparkJob {
+object FindTopic extends NewSparkJob with NamedObjectSupport {
 
 
   type JobData = Seq[String]
   type JobOutput = collection.Map[String, Double]
 
-  //val transformToUdf = udf((cat: Seq[String]) => cat(0))
+  val model = Word2VecModel.load("/word2vecModel")
+
+  // Déclaration d'un named object
+  implicit def rddPersister[T] : NamedObjectPersister[NamedRDD[T]] = new RDDPersister[T]
+  implicit val dataFramePersister = new DataFramePersister
+
+
+
 
   //case class MC(article : Seq[String])
   def getVectorForText(occurence: String, model: org.apache.spark.ml.feature.Word2VecModel, sqlContext: org.apache.spark.sql.SQLContext) : DataFrame = {
@@ -53,7 +63,6 @@ object FindTopic extends NewSparkJob {
 
     // Déclaration du Logger
     val logger = LoggerFactory.getLogger("runJob")
-    logger.info("Teeeeeeeeeeeeeeeeeeeest")
 
 
     // Get des données d'entrées, On créé une string avec tous les mots
@@ -62,11 +71,13 @@ object FindTopic extends NewSparkJob {
     val sqlContext = new org.apache.spark.sql.SQLContext(sc)
     import sqlContext.implicits._
 
-    val model = Word2VecModel.load("/word2vecModel")
+
     val df2 = "politique,economie,sport,cinema,art,education".split(",").map {
       t => Seq(t)
     }.toSeq.toDF.withColumnRenamed("value","article")
 
+    //val NamedDataFrame = namedObjects.getOrElseCreate(NamedDataFrame("df2",false, StorageLevel.NONE))
+    this.namedObjects.update("df2", NamedDataFrame(df2, false, StorageLevel.NONE))
 
 
     val vc1 = model.transform(df2)
